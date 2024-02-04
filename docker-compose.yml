@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  course_gpt_nginx:
+    build: ./nginx
+    ports:
+      - '3000:80'
+      - '8000:8888'
+    restart: on-failure
+    depends_on:
+      - course_gpt_backend
+      - course_gpt_frontend
+
+  database:
+    image: postgres:12-alpine
+    restart: on-failure
+    environment:
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=course_gpt
+      - PGDATA=/var/lib/postgresql/data/ali/
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+
+  course_gpt_backend:
+    build: ${BACKEND_PROJECT_PATH}
+    restart: on-failure
+    environment:
+      - DATABASE_HOST=database
+    depends_on:
+      - database
+    deploy:
+      mode: replicated
+      replicas: ${BACKEND_REPLICAS}
+      resources:
+        limits:
+          cpus: ${BACKEND_CPU_LIMIT}
+          memory: ${BACKEND_MEM_LIMIT}
+
+  course_gpt_frontend:
+    build: ${FRONTEND_PROJECT_PATH}
+    restart: on-failure
+    deploy:
+      mode: replicated
+      replicas: ${FRONTEND_REPLICAS}
